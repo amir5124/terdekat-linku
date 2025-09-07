@@ -215,7 +215,7 @@ async function syncProdukMitra() {
 setInterval(() => {
     console.log('⏳ Menjalankan cron job sync produk mitra...');
     syncProdukMitra().catch(console.error);
-}, 60 * 60 * 1000); // setiap 1 jam
+}, 60 * 1000);// setiap 1 jam
 
 
 
