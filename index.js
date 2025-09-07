@@ -26,7 +26,7 @@ app.get('/jagel-nearme', async (req, res) => {
                 param: '',
                 latitude,
                 longitude,
-                label: 'makanan',
+                label: 'ufood',
                 app_view_uid: '617f701ba3b3a'
             },
             headers: {
