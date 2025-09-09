@@ -201,11 +201,11 @@ async function syncProdukMitra() {
 
             if (!produkSnap.exists) {
                 await produkRef.set(finalData);
-                console.log(`✅ Produk disimpan: ${produk.title} dari ${nama_mitra}`);
+                console.log(`✅ Produk baru disimpan: ${produk.title} dari ${nama_mitra}`);
             } else {
-                // jika ingin update juga, gunakan:
-                // await produkRef.set(finalData, { merge: true });
-                console.log(`ℹ️ Produk ${produk.title} dari ${nama_mitra} sudah ada`);
+                // Gunakan 'merge: true' untuk mengupdate field tertentu tanpa menghapus data lain
+                await produkRef.set(finalData, { merge: true });
+                console.log(`🔄 Produk di-update: ${produk.title} dari ${nama_mitra}`);
             }
         }
     }
