@@ -8,6 +8,51 @@ const app = express();
 app.use(cors());
 
 const PORT = 3000;
+const EXTERNAL_API_BASE_URL = 'https://app.jagel.id/api/mydiscount';
+const HARDCODED_UNIQUE_ID = '03421121304617f701ba3b374.233102422';
+const HARDCODED_FILTER = '2';
+const AUTHORIZATION_TOKEN = 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImp0aSI6IjdhY2FhY2ZhMWE3MzI4OTkwNGExNDNiOGY2MjI4OGRmMzYxYzg0NmY4OWQ5YTdhZmJkNTA3MWVhMGQ4ZTQyMmRmNzIyNzg0NzZjNjQ3NGQ5In0.eyJhdWQiOiIxIiwianRpIjoiN2FjYWFjZmExYTczMjg5OTBwNGExNDNiOGY2MjI4OGRmMzYxYzg0NmY4OWQ5YTdhZmJkNTA3MWVhMGQ4ZTQyMmRmNzIyNzg0NzZjNjQ3NGQ5IiwiaWF0IjoxNzU4NDUxOTIyLCJuYmYiOjE3NTg0NTE5MjIsImV4cCI6MTc4OTk4NzkyMiwic3ViIjoiMjk3MTg0NCIsInNjb3BlcyI6W119.RK7hZzvzg3IrcPUN58IFUaxMmH-YFMHBW639ic8I2cSPA03WDy3MQCzRGJ1ropjuT2rKLx5-bK0dKq_0UFQQdFpHmnHBYVE2frvl6E322IyZPwLFGZb04MoHK7nweVjz0s6EJJ7WbSH9ouH6jIic-UeCngsKl-GsS_34TrJKqXElGpiSyBiO21KOsIlwr3Jf3Atl1cLyje0SKJY9-PeN_0Kc18Oyb6g9RUgsSkTHeyMkzOigd1jr4az9udgvM2CdX1eoIqhktBdovUJZk-d2kj1E2K1kcbYpFJroCifom_SkbjuvPWvsBuz5onnMAQs2AS2jPAQLvThqG31Jn7c9_ZRD8WM9sAvJif8kcY4-Bm-naJ_WKZKbSF2e1CiJgYaglb0XqxizrDqgqw-LDs5UnjFNxbDNBel9BfX-r8AH2Rfj7cI7FRGmmM6xKNc86wgz7V7-7-8rvjJwwr8U0oFmsv36eBwDt2Q0wzqU5vAq84wEyE6Smh4bgTDXZl02xAjd31o0orKQYqFHZr6etRL_2e_Q7IuixmnuxOJ5XQ36gIj-UHJB62r4U8I0MZgFliTYqn6WPG1HnFdbH32V67Zxeo6tueWpRcDxF0JT6Pekqkw2vdCrXN_mY6enOd48cRhTj06P8_DBcmLflyp01yChsix22bIF2DbjNXm7obYbc7M';
+
+
+app.get('/api/discounts', async (req, res) => {
+    const filter = HARDCODED_FILTER;
+    const unique_id = HARDCODED_UNIQUE_ID;
+
+    try {
+        const externalApiUrl = `${EXTERNAL_API_BASE_URL}?filter=${filter}&unique_id=${unique_id}`;
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': AUTHORIZATION_TOKEN
+        };
+
+        console.log(`[REQUEST OUT] Fetching discounts from: ${externalApiUrl}`);
+        console.log('Headers:', JSON.stringify(headers));
+
+        const apiResponse = await axios.get(externalApiUrl, { headers });
+
+        console.log(`[RESPONSE IN] Status: ${apiResponse.status}`);
+
+        res.status(200).json(apiResponse.data);
+
+    } catch (error) {
+        console.error('Error fetching discounts:', error.message);
+
+        if (error.response) {
+            console.error('External API Response Error:', error.response.status, JSON.stringify(error.response.data));
+            return res.status(error.response.status).json({
+                error: true,
+                message: `External API Error: ${error.response.data.message || 'Unknown API error'}`,
+                details: error.response.data
+            });
+        }
+
+        res.status(500).json({
+            error: true,
+            message: 'Internal Server Error or Network failure.'
+        });
+    }
+});
 
 app.get('/jagel-nearme', async (req, res) => {
     const { latitude, longitude } = req.query;
