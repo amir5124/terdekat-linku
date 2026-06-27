@@ -72,7 +72,7 @@ app.get('/jagel-nearme', async (req, res) => {
                 app_view_uid: '617f701ba3b3a'
             },
             headers: {
-                'Authorization': 'Bearer ...', // Ganti token sesuai kebutuhan
+                'Authorization': 'Bearer ...',
                 'Origin': 'https://app.linku.co.id',
                 'Referer': 'https://app.linku.co.id/',
                 'User-Agent': 'Mozilla/5.0',
@@ -80,10 +80,13 @@ app.get('/jagel-nearme', async (req, res) => {
             }
         });
 
+        // ✅ Log response asli dari API nearme
+        console.log('📦 Raw response nearme API:');
+        console.log(JSON.stringify(response.data, null, 2));
+
         const mitraList = response.data?.data?.data || [];
         console.log('✅ Jumlah mitra ditemukan:', mitraList.length);
 
-        // Parallel get + enrich data with seller_rating (with caching)
         const enrichedMitraList = await Promise.all(mitraList.map(async mitra => {
             const view_uid = mitra.view_uid;
             if (!view_uid) return null;
@@ -97,7 +100,6 @@ app.get('/jagel-nearme', async (req, res) => {
                 const data = docSnap.data();
                 seller_rating = data.seller_rating ?? 4.0;
             } else {
-                // 🔍 Fetch detail from jagel if not cached
                 try {
                     const detailRes = await axios.get(`https://app.jagel.id/api/v2/customer/list/${view_uid}`, {
                         params: { codename: 'iknlinku' },
@@ -110,10 +112,13 @@ app.get('/jagel-nearme', async (req, res) => {
                         }
                     });
 
+                    // ✅ Log response asli dari API detail mitra
+                    console.log(`📦 Raw response detail API [${view_uid}]:`);
+                    console.log(JSON.stringify(detailRes.data, null, 2));
+
                     const detail = detailRes.data?.data;
                     seller_rating = detail?.seller_rating ?? 4.0;
 
-                    // Simpan ke Firestore
                     await docRef.set({
                         view_uid: mitra.view_uid,
                         title: mitra.title ?? '-',
@@ -129,6 +134,12 @@ app.get('/jagel-nearme', async (req, res) => {
                     console.log(`📥 Mitra baru disimpan: ${mitra.title}`);
                 } catch (detailErr) {
                     console.error(`❌ Gagal ambil detail untuk ${view_uid}:`, detailErr.message);
+
+                    // ✅ Log response error dari API detail jika ada
+                    if (detailErr.response) {
+                        console.error(`📦 Raw error response detail API [${view_uid}]:`);
+                        console.error(JSON.stringify(detailErr.response.data, null, 2));
+                    }
                 }
             }
 
@@ -144,7 +155,6 @@ app.get('/jagel-nearme', async (req, res) => {
             };
         }));
 
-        // Filter null jika ada mitra yang error
         const cleanList = enrichedMitraList.filter(Boolean);
 
         res.json({
@@ -155,10 +165,16 @@ app.get('/jagel-nearme', async (req, res) => {
 
     } catch (error) {
         console.error('❌ Gagal ambil data nearme:', error.response?.data || error.message);
+
+        // ✅ Log response error dari API nearme jika ada
+        if (error.response) {
+            console.error('📦 Raw error response nearme API:');
+            console.error(JSON.stringify(error.response.data, null, 2));
+        }
+
         res.status(500).json({ error: 'Gagal mengambil data', detail: error.message });
     }
 });
-
 app.get('/jagel-nearme-sayuran', async (req, res) => {
     const { latitude, longitude } = req.query;
 
