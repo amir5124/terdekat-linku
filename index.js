@@ -55,11 +55,14 @@ app.get('/api/discounts', async (req, res) => {
 });
 
 app.get('/jagel-nearme', async (req, res) => {
-    const { latitude, longitude } = req.query;
+    const { latitude, longitude, radius } = req.query; // Tambahkan radius
 
     if (!latitude || !longitude) {
         return res.status(400).json({ error: 'Latitude dan longitude wajib diisi' });
     }
+
+    // Default radius 10 km jika tidak dikirim
+    const maxRadius = parseFloat(radius) || 30;
 
     try {
         const response = await axios.get('https://app.jagel.id/api/list/search', {
@@ -79,10 +82,6 @@ app.get('/jagel-nearme', async (req, res) => {
                 'Accept': 'application/json'
             }
         });
-
-        // ✅ Log response asli dari API nearme
-        console.log('📦 Raw response nearme API:');
-        console.log(JSON.stringify(response.data, null, 2));
 
         const mitraList = response.data?.data?.data || [];
         console.log('✅ Jumlah mitra ditemukan:', mitraList.length);
@@ -112,10 +111,6 @@ app.get('/jagel-nearme', async (req, res) => {
                         }
                     });
 
-                    // ✅ Log response asli dari API detail mitra
-                    console.log(`📦 Raw response detail API [${view_uid}]:`);
-                    console.log(JSON.stringify(detailRes.data, null, 2));
-
                     const detail = detailRes.data?.data;
                     seller_rating = detail?.seller_rating ?? 4.0;
 
@@ -134,12 +129,6 @@ app.get('/jagel-nearme', async (req, res) => {
                     console.log(`📥 Mitra baru disimpan: ${mitra.title}`);
                 } catch (detailErr) {
                     console.error(`❌ Gagal ambil detail untuk ${view_uid}:`, detailErr.message);
-
-                    // ✅ Log response error dari API detail jika ada
-                    if (detailErr.response) {
-                        console.error(`📦 Raw error response detail API [${view_uid}]:`);
-                        console.error(JSON.stringify(detailErr.response.data, null, 2));
-                    }
                 }
             }
 
@@ -157,24 +146,29 @@ app.get('/jagel-nearme', async (req, res) => {
 
         const cleanList = enrichedMitraList.filter(Boolean);
 
+        // 🔥 FILTER BERDASARKAN RADIUS
+        const filteredList = cleanList.filter(item => {
+            const distance = item.distance || 0;
+            return distance <= maxRadius;
+        });
+
+        console.log(`📊 Filter radius ${maxRadius} km: ${filteredList.length} dari ${cleanList.length} mitra`);
+
         res.json({
             success: true,
-            total: cleanList.length,
-            items: cleanList
+            total: filteredList.length,
+            total_all: cleanList.length,
+            radius: maxRadius,
+            items: filteredList
         });
 
     } catch (error) {
         console.error('❌ Gagal ambil data nearme:', error.response?.data || error.message);
-
-        // ✅ Log response error dari API nearme jika ada
-        if (error.response) {
-            console.error('📦 Raw error response nearme API:');
-            console.error(JSON.stringify(error.response.data, null, 2));
-        }
-
         res.status(500).json({ error: 'Gagal mengambil data', detail: error.message });
     }
 });
+
+
 app.get('/jagel-nearme-sayuran', async (req, res) => {
     const { latitude, longitude } = req.query;
 
